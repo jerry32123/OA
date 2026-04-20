@@ -1,0 +1,137 @@
+{% extends 'base.html' %}
+
+{% block title %}个人信息 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>个人信息</h3>
+    <div class="card mt-3">
+        <div class="card-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">用户名</label>
+                        <input type="text" class="form-control" value="{{ user.username }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">姓名</label>
+                        <input type="text" class="form-control" name="real_name" value="{{ user.real_name }}" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">角色</label>
+                        <input type="text" class="form-control" value="{{ user.role }}" readonly>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">部门</label>
+                        <input type="text" class="form-control" name="department" value="{{ user.department }}" required>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">年龄</label>
+                        <input type="number" class="form-control" name="age" value="{{ user.employee_info.age or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">性别</label>
+                        <select class="form-select" name="gender">
+                            <option value="" {% if not user.employee_info.gender %}selected{% endif %}>请选择</option>
+                            <option value="男" {% if user.employee_info.gender == '男' %}selected{% endif %}>男</option>
+                            <option value="女" {% if user.employee_info.gender == '女' %}selected{% endif %}>女</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">电话</label>
+                        <input type="text" class="form-control" name="phone" value="{{ user.employee_info.phone or '' }}">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">邮箱</label>
+                        <input type="email" class="form-control" name="email" value="{{ user.employee_info.email or '' }}">
+                    </div>
+                </div>
+
+                <!-- 离职相关信息 - 非管理员可见 -->
+                {% if session.role != 'admin' %}
+                    <div class="mb-3">
+                        <label class="form-label">在职状态</label>
+                        <input type="text" class="form-control" value="{{ user.status }}" readonly>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">离职申请状态</label>
+                        <input type="text" class="form-control"
+                               value="{% if user.resignation_status == '未申请' %}未申请
+                                      {% elif user.resignation_status == '待审批' %}待审批
+                                      {% elif user.resignation_status == '已批准' %}已批准
+                                      {% else %}已拒绝{% endif %}"
+                               readonly>
+                    </div>
+
+                    {% if user.resignation_status == '待审批' %}
+                    <div class="alert alert-warning">
+                        <i class="bi bi-exclamation-triangle"></i> 您的离职申请正在审批中，请等待管理员处理。
+                    </div>
+                    {% elif user.resignation_status == '已批准' %}
+                    <div class="alert alert-success">
+                        <i class="bi bi-check-circle"></i> 您的离职申请已批准，请办理后续离职手续。
+                    </div>
+                    {% elif user.resignation_status == '已拒绝' %}
+                    <div class="alert alert-danger">
+                        <i class="bi bi-x-circle"></i> 您的离职申请未通过审批，如有疑问请联系管理员。
+                    </div>
+                    {% endif %}
+                {% endif %}
+
+                <div class="mb-3">
+                    <label class="form-label">地址</label>
+                    <textarea class="form-control" name="address" rows="3">{{ user.employee_info.address or '' }}</textarea>
+                </div>
+
+                <div class="row mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label">基本工资</label>
+                        <input type="number" step="0.01" class="form-control" name="salary_base"
+                               value="{{ user.employee_info.salary_base or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">奖金</label>
+                        <input type="number" step="0.01" class="form-control" name="salary_bonus"
+                               value="{{ user.employee_info.salary_bonus or '' }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">扣款</label>
+                        <input type="number" step="0.01" class="form-control" name="salary_deduction"
+                               value="{{ user.employee_info.salary_deduction or '' }}">
+                    </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary">保存修改</button>
+
+                <!-- 离职申请按钮 - 非管理员且符合条件时显示 -->
+                {% if session.role != 'admin' and user.status == '在职' and user.resignation_status != '待审批' %}
+                    <a href="{{ url_for('resign_apply') }}" class="btn btn-danger ms-2">提交离职申请</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

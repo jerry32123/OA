@@ -1,0 +1,301 @@
+{% extends "base.html" %}
+
+{% block title %}流程实例详情 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('my_workflow_instances') }}">我的流程实例</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">实例详情</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="fas fa-history me-2"></i>流程实例详情
+                            {% if instance.status == '进行中' %}
+                                <span class="badge bg-primary ms-2">进行中</span>
+                            {% elif instance.status == '已完成' %}
+                                <span class="badge bg-success ms-2">已完成</span>
+                            {% elif instance.status == '已拒绝' %}
+                                <span class="badge bg-danger ms-2">已拒绝</span>
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div>
+                        <a href="{{ url_for('my_workflow_instances') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> 返回
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- 流程基本信息 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="120">流程名称：</th>
+                                    <td>{{ definition.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>发起人：</th>
+                                    <td>
+                                        {{ initiator_info.real_name }} ({{ initiator_info.department }})
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>关联用户：</th>
+                                    <td>
+                                        {% if related_user_info %}
+                                            {{ related_user_info.real_name }} ({{ related_user_info.department }})
+                                        {% else %}
+                                            无关联用户
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="120">发起时间：</th>
+                                    <td>{{ instance.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                                </tr>
+                                <tr>
+                                    <th>完成时间：</th>
+                                    <td>
+                                        {% if instance.completed_at %}
+                                            {{ instance.completed_at.strftime('%Y-%m-%d %H:%M:%S') }}
+                                        {% else %}
+                                            未完成
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>当前状态：</th>
+                                    <td>
+                                        {% if instance.status == '进行中' %}
+                                            <span class="badge bg-primary">进行中</span>
+                                        {% elif instance.status == '已完成' %}
+                                            <span class="badge bg-success">已完成</span>
+                                        {% elif instance.status == '已拒绝' %}
+                                            <span class="badge bg-danger">已拒绝</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 审批进度 -->
+                    <div class="mb-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-tasks me-2"></i>审批进度
+                        </h5>
+                        
+                        {% if steps and steps|length > 0 %}
+                            <div class="progress mb-3" style="height: 30px;">
+                                {% set total_steps = steps|length %}
+                                {% set completed_count = approvals|selectattr('approval_status', 'equalto', '通过')|list|length %}
+                                {% set progress_percentage = (completed_count / total_steps * 100)|int if total_steps > 0 else 0 %}
+                                
+                                <div class="progress-bar progress-bar-striped progress-bar-animated 
+                                            {% if instance.status == '已完成' %}bg-success{% elif instance.status == '已拒绝' %}bg-danger{% else %}bg-primary{% endif %}" 
+                                     role="progressbar" 
+                                     style="width: {{ progress_percentage }}%" 
+                                     aria-valuenow="{{ progress_percentage }}" 
+                                     aria-valuemin="0" 
+                                     aria-valuemax="100">
+                                    第 {{ completed_count }}/{{ total_steps }} 步 ({{ progress_percentage }}%)
+                                </div>
+                            </div>
+                            
+                            <!-- 步骤时间线 -->
+                            <div class="timeline mb-5">
+                                {% for step in steps %}
+                                    {% set approval = approvals|selectattr('step_id', 'equalto', step.id)|first %}
+                                    <div class="timeline-item {% if loop.index % 2 == 0 %}timeline-item-right{% else %}timeline-item-left{% endif %}">
+                                        <div class="timeline-point">
+                                            {% if approval %}
+                                                {% if approval.approval_status == '通过' %}
+                                                    <span class="badge rounded-circle bg-success">{{ step.step_order }}</span>
+                                                {% elif approval.approval_status == '拒绝' %}
+                                                    <span class="badge rounded-circle bg-danger">{{ step.step_order }}</span>
+                                                {% else %}
+                                                    <span class="badge rounded-circle bg-warning text-dark">{{ step.step_order }}</span>
+                                                {% endif %}
+                                            {% else %}
+                                                <span class="badge rounded-circle bg-secondary">{{ step.step_order }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="timeline-content card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0">第 {{ step.step_order }} 步</h6>
+                                                    <div>
+                                                        <span class="badge {% if step.required_role == 'admin' %}bg-danger{% elif step.required_role == 'manager' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                                            {{ step.required_role }}
+                                                        </span>
+                                                        {% if approval %}
+                                                            <span class="badge ms-1 {% if approval.approval_status == '通过' %}bg-success{% elif approval.approval_status == '拒绝' %}bg-danger{% else %}bg-warning text-dark{% endif %}">
+                                                                {{ approval.approval_status }}
+                                                            </span>
+                                                        {% endif %}
+                                                    </div>
+                                                </div>
+
+                                                <p class="card-text">{{ step.description or '无描述' }}</p>
+
+                                                {% if approval %}
+                                                    <div class="text-muted small">
+                                                        <i class="fas fa-user-check me-1"></i> 
+                                                        审批人：{{ approval.approver_name or '未知' }}
+                                                        {% if approval.approved_at %}
+                                                            <i class="fas fa-clock ms-3 me-1"></i> 
+                                                            审批时间：{{ approval.approved_at.strftime('%Y-%m-%d %H:%M') }}
+                                                        {% endif %}
+                                                        {% if approval.comments %}
+                                                            <br>
+                                                            <i class="fas fa-comment me-1"></i> 
+                                                            审批意见：{{ approval.comments }}
+                                                        {% endif %}
+                                                    </div>
+                                                {% else %}
+                                                    <div class="text-muted small">
+                                                        <i class="fas fa-clock me-1"></i> 
+                                                        待处理
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                该流程未定义步骤，无法显示审批进度。
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{{ url_for('my_workflow_instances') }}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> 返回列表
+                        </a>
+                        
+                        {% if instance.status == '进行中' and session.role in ['admin', 'manager'] %}
+                            {% set pending_approval = approvals|selectattr('approval_status', 'equalto', '待审批')|first %}
+                            {% if pending_approval and pending_approval.approver_id == session.user_id %}
+                                <a href="{{ url_for('approve_workflow', record_id=pending_approval.id) }}" class="btn btn-primary">
+                                    <i class="fas fa-check-circle me-1"></i> 处理审批
+                                </a>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* 时间线样式（与definition_detail.html中的样式相同） */
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+        transform: translateX(-50%);
+    }
+
+    .timeline-item {
+        display: flex;
+        margin-bottom: 30px;
+        position: relative;
+        width: 100%;
+    }
+
+    .timeline-item-left {
+        justify-content: flex-start;
+    }
+
+    .timeline-item-right {
+        justify-content: flex-end;
+    }
+
+    .timeline-item-center {
+        justify-content: center;
+    }
+
+    .timeline-point {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        transform: translateX(-50%);
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timeline-content {
+        width: calc(50% - 40px);
+        max-width: 500px;
+    }
+
+    .timeline-item-left .timeline-content {
+        margin-right: 40px;
+    }
+
+    .timeline-item-right .timeline-content {
+        margin-left: 40px;
+    }
+
+    .timeline-item-center .timeline-content {
+        width: 200px;
+        text-align: center;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .timeline::before {
+            left: 20px;
+        }
+
+        .timeline-item {
+            justify-content: flex-start !important;
+        }
+
+        .timeline-point {
+            left: 20px;
+        }
+
+        .timeline-content {
+            width: calc(100% - 60px);
+            margin-left: 60px !important;
+            margin-right: 0 !important;
+        }
+    }
+</style>
+{% endblock %}

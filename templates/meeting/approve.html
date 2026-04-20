@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}会议室审批{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">会议室申请审批</h4>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>申请人</th>
+                        <th>会议室</th>
+                        <th>申请时间</th>  <!-- 新增 -->
+                        <th>使用时间</th>
+                        <th>申请原因</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for apply in applies %}
+                    <tr>
+                        <td>{{ apply.id }}</td>
+                        <td>{{ apply.applicant.real_name }}</td>  <!-- 关联用户表显示真实姓名 -->
+                        <td>{{ apply.meeting_room.room_no }}</td>  <!-- 关联会议室表显示编号 -->
+                        <td>{{ apply.apply_time.strftime('%Y-%m-%d %H:%M') }}</td>  <!-- 新增 -->
+                        <td>{{ apply.start_time.strftime('%Y-%m-%d %H:%M') }} 至 {{ apply.end_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>{{ apply.reason }}</td>
+                        <td>
+                            <!-- 审批按钮触发模态框 -->
+                            <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                    data-bs-target="#approveModal{{ apply.id }}">处理</button>
+
+                            <!-- 审批模态框 -->
+                            <div class="modal fade" id="approveModal{{ apply.id }}" tabindex="-1">
+                                <div class="modal-dialog">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-primary text-white">
+                                            <h5 class="modal-title">审批会议室申请 #{{ apply.id }}</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body">
+                                            <form method="POST">
+                                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                <input type="hidden" name="apply_id" value="{{ apply.id }}">
+
+                                                <div class="mb-3">
+                                                    <label class="form-label">申请详情</label>
+                                                    <div class="card bg-light p-3">
+                                                        <p><strong>申请人：</strong>{{ apply.applicant.real_name }}</p>
+                                                        <p><strong>会议室：</strong>{{ apply.meeting_room.room_no }} (可容纳{{ apply.meeting_room.capacity }}人)</p>
+                                                        <p><strong>使用时间：</strong>{{ apply.start_time.strftime('%Y-%m-%d %H:%M') }} 至 {{ apply.end_time.strftime('%Y-%m-%d %H:%M') }}</p>
+                                                        <p><strong>参与人数：</strong>{{ apply.participants }}</p>
+                                                        <p><strong>申请原因：</strong>{{ apply.reason }}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div class="mb-3">
+                                                    <label class="form-label">审批意见</label>
+                                                    <textarea class="form-control" name="remark" rows="3" required placeholder="请输入审批意见..."></textarea>
+                                                </div>
+
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                    <button type="submit" name="status" value="已批准" class="btn btn-success">批准</button>
+                                                    <button type="submit" name="status" value="已拒绝" class="btn btn-danger">拒绝</button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="7" class="text-center text-muted">暂无待审批的会议室申请</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,275 @@
+{% extends "base.html" %}
+
+{% block title %}发起流程 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('workflow_definitions') }}">流程定义</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('workflow_definition_detail', def_id=definition.id) }}">{{ definition.name }}</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">发起流程</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-play-circle me-2"></i>发起流程：{{ definition.name }}
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if definition.status == '停用' %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            该流程定义已停用，无法发起新的流程实例。
+                        </div>
+                        <div class="text-center mt-4">
+                            <a href="{{ url_for('workflow_definitions') }}" class="btn btn-primary">
+                                <i class="fas fa-arrow-left me-1"></i> 返回流程列表
+                            </a>
+                        </div>
+                    {% else %}
+                        <!-- 流程信息摘要 -->
+                        <div class="alert alert-info mb-4">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>流程名称：</strong>{{ definition.name }}</p>
+                                    <p class="mb-1"><strong>所属部门：</strong>{{ definition.department }}</p>
+                                </div>
+                                <div class="col-md-6">
+                                    <p class="mb-1"><strong>触发事件：</strong>{{ definition.trigger_event }}</p>
+                                    <p class="mb-0"><strong>步骤总数：</strong>{{ steps|length }}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 流程描述 -->
+                        {% if definition.description %}
+                            <div class="alert alert-light border mb-4">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-info-circle me-2"></i>流程描述
+                                </h6>
+                                <p class="mb-0">{{ definition.description }}</p>
+                            </div>
+                        {% endif %}
+
+                        <!-- 流程步骤预览 -->
+                        <div class="mb-4">
+                            <h6 class="mb-3">
+                                <i class="fas fa-steps me-2"></i>审批步骤预览
+                            </h6>
+                            <div class="row">
+                                {% for step in steps %}
+                                    <div class="col-md-6 mb-3">
+                                        <div class="card h-100">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0">第 {{ step.step_order }} 步</h6>
+                                                    <span class="badge {% if step.required_role == 'admin' %}bg-danger{% elif step.required_role == 'manager' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                                        {% if step.required_role == 'admin' %}
+                                                            管理员
+                                                        {% elif step.required_role == 'manager' %}
+                                                            经理
+                                                        {% else %}
+                                                            员工
+                                                        {% endif %}
+                                                    </span>
+                                                </div>
+                                                {% if step.description %}
+                                                    <p class="card-text small">{{ step.description }}</p>
+                                                {% else %}
+                                                    <p class="card-text small text-muted">暂无描述</p>
+                                                {% endif %}
+                                                <div class="text-muted extra-small">
+                                                    <i class="fas fa-clock me-1"></i> 超时时间：{{ step.timeout_hours }}小时
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% if loop.index % 2 == 0 %}
+                                        </div><div class="row">
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+
+                        <!-- 发起表单 -->
+                        <form method="POST" action="{{ url_for('start_workflow', def_id=definition.id) }}">
+                            <!-- 添加 CSRF Token -->
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+                            <!-- 关联用户选择（根据需要） -->
+                            {% if need_related_user %}
+                                <div class="mb-4">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-user-friends me-2"></i>选择关联人员
+                                    </h6>
+                                    <div class="row">
+                                        <div class="col-md-6">
+                                            <div class="mb-3">
+                                                <label for="related_user_id" class="form-label">关联用户 <span class="text-danger">*</span></label>
+                                                <select class="form-select" id="related_user_id" name="related_user_id" required>
+                                                    <option value="">请选择关联用户</option>
+                                                    {% for user in available_users %}
+                                                        <option value="{{ user.id }}"
+                                                            {% if user.id == session.user_id %}selected{% endif %}>
+                                                            {{ user.real_name }} ({{ user.department }}{% if user.id == session.user_id %} - 自己{% endif %})
+                                                        </option>
+                                                    {% endfor %}
+                                                </select>
+                                                <div class="form-text">
+                                                    {% if definition.trigger_event == '请假' %}
+                                                        请选择请假人员（可以为他人申请）
+                                                    {% elif definition.trigger_event == '设备领用' %}
+                                                        请选择领用人员
+                                                    {% else %}
+                                                        请选择与此流程相关的用户
+                                                    {% endif %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- 如果不需要选择关联用户，则传递当前用户ID -->
+                                <input type="hidden" name="related_user_id" value="{{ session.user_id }}">
+                            {% endif %}
+
+                            <!-- 附加信息（根据流程类型） -->
+                            {% if definition.trigger_event == '请假' %}
+                                <div class="mb-4">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-sticky-note me-2"></i>请假信息
+                                    </h6>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        请先在请假管理页面填写具体的请假信息，此处仅发起流程审批。
+                                    </div>
+                                </div>
+                            {% elif definition.trigger_event == '设备领用' %}
+                                <div class="mb-4">
+                                    <h6 class="mb-3">
+                                        <i class="fas fa-laptop me-2"></i>设备信息
+                                    </h6>
+                                    <div class="alert alert-warning">
+                                        <i class="fas fa-exclamation-circle me-2"></i>
+                                        请先在设备管理页面选择要领用的设备，此处仅发起流程审批。
+                                    </div>
+                                </div>
+                            {% else %}
+                                <!-- 通用备注 -->
+                                <div class="mb-3">
+                                    <label for="remarks" class="form-label">申请备注</label>
+                                    <textarea class="form-control" id="remarks" name="remarks" rows="3" maxlength="500"></textarea>
+                                    <div class="form-text">请简要说明发起此流程的原因或特殊要求（可选）</div>
+                                </div>
+                            {% endif %}
+
+                            <!-- 确认提示 -->
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <strong>确认提示：</strong>
+                                <ul class="mb-0 mt-2">
+                                    <li>发起流程后，将按照上述步骤顺序进行审批</li>
+                                    <li>每个步骤必须在超时时间内完成审批，否则流程可能被自动处理</li>
+                                    <li>一旦发起，流程将无法取消，请确认信息无误</li>
+                                </ul>
+                            </div>
+
+                            <!-- 操作按钮 -->
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{{ url_for('workflow_definition_detail', def_id=definition.id) }}"
+                                   class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i> 返回详情
+                                </a>
+                                <div>
+                                    <button type="button" class="btn btn-secondary me-2" onclick="history.back()">
+                                        <i class="fas fa-times me-1"></i> 取消
+                                    </button>
+                                    <button type="submit" class="btn btn-primary" onclick="return confirmSubmit()">
+                                        <i class="fas fa-paper-plane me-1"></i> 确认发起流程
+                                    </button>
+                                </div>
+                            </div>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 流程说明 -->
+            <div class="card mt-4">
+                <div class="card-header">
+                    <h6 class="mb-0">
+                        <i class="fas fa-question-circle me-2"></i>流程说明
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item">
+                            <i class="fas fa-check-circle text-success me-2"></i>
+                            <strong>发起人：</strong>您（{{ session.real_name }}）将作为流程的发起人
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-user-check text-primary me-2"></i>
+                            <strong>审批流程：</strong>流程将按照上述步骤依次进行审批，每一步都需要指定角色的用户审批通过
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-clock text-warning me-2"></i>
+                            <strong>审批时效：</strong>每个步骤都有超时时间限制，超时未处理将提醒相关人员
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-ban text-danger me-2"></i>
+                            <strong>流程终止：</strong>任一审批步骤被拒绝，整个流程将终止
+                        </li>
+                        <li class="list-group-item">
+                            <i class="fas fa-history text-info me-2"></i>
+                            <strong>进度跟踪：</strong>您可以在"我的流程实例"中查看流程进度和审批记录
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    function confirmSubmit() {
+        // 如果需要选择关联用户，验证是否已选择
+        const relatedUserSelect = document.getElementById('related_user_id');
+        if (relatedUserSelect && !relatedUserSelect.value) {
+            alert('请选择关联用户');
+            relatedUserSelect.focus();
+            return false;
+        }
+
+        // 最终确认
+        return confirm('确定要发起此流程吗？一旦发起将进入审批流程，无法取消。');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // 页面加载时聚焦到第一个表单元素
+        const firstInput = document.querySelector('form input, form select, form textarea');
+        if (firstInput) {
+            firstInput.focus();
+        }
+
+        // 为关联用户选择框添加提示
+        const relatedUserSelect = document.getElementById('related_user_id');
+        if (relatedUserSelect) {
+            relatedUserSelect.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                if (selectedOption.text.includes('自己')) {
+                    // 可以添加一些提示信息
+                    console.log('您选择了为自己发起流程');
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

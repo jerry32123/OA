@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+
+{% block title %}审批请假 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>待审批请假申请</h3>
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>申请人</th>
+                            <th>部门</th>
+                            <th>请假类型</th>
+                            <th>时间范围</th>
+                            <th>原因</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for leave in leaves %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ leave.applicant.real_name }}</td>
+                            <td>{{ leave.applicant.department }}</td>
+                            <td>{{ leave.leave_type }}</td>
+                            <td>{{ leave.start_time.strftime('%Y-%m-%d') }} 至 {{ leave.end_time.strftime('%Y-%m-%d') }}</td>
+                            <td>{{ leave.reason }}</td>
+                            <td>
+                                <form method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="leave_id" value="{{ leave.id }}">
+                                    <button type="submit" name="status" value="已批准" class="btn btn-success btn-sm">批准</button>
+                                    <button type="submit" name="status" value="已拒绝" class="btn btn-danger btn-sm ms-2">拒绝</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">暂无待审批请假申请</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

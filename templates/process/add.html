@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block title %}添加流程 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h4>添加流程</h4>
+                </div>
+                <div class="card-body">
+                    {% with messages = get_flashed_messages(with_categories=true) %}
+                        {% if messages %}
+                            {% for category, message in messages %}
+                                <div class="alert alert-{{ category }}">{{ message }}</div>
+                            {% endfor %}
+                        {% endif %}
+                    {% endwith %}
+
+                    <form method="POST">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                        <div class="mb-3">
+                            <label class="form-label">流程名称</label>
+                            <input type="text" class="form-control" name="process_name" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">流程步骤（用逗号分隔）</label>
+                            <textarea class="form-control" name="process_steps" rows="3" required
+                                      placeholder="例如：部门申请,经理审批,行政备案"></textarea>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">所属部门</label>
+                            <input type="text" class="form-control" name="department" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">状态</label>
+                            <select class="form-select" name="status" required>
+                                <option value="启用">启用</option>
+                                <option value="停用">停用</option>
+                            </select>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">保存流程</button>
+                        <a href="{{ url_for('process_list') }}" class="btn btn-secondary">返回列表</a>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

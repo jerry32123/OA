@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OA管理系统 - {% block title %}{% endblock %}</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.staticfile.org/twitter-bootstrap/5.2.3/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link href="https://cdn.staticfile.org/bootstrap-icons/1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        /* 侧边栏样式 */
+        .sidebar {
+            height: 100vh;
+            background-color: #0d6efd;
+            color: white;
+            padding-top: 20px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 250px;
+            overflow-y: auto;
+            z-index: 100;
+        }
+        .sidebar .nav-link {
+            color: rgba(255, 255, 255, 0.85);
+            padding: 0.75rem 1rem;
+            border-radius: 0;
+            transition: all 0.2s ease;
+        }
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            color: white;
+            background-color: rgba(255, 255, 255, 0.25);
+            font-weight: bold;
+        }
+        /* 增强功能项白色分隔线 */
+        .sidebar .nav-item {
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 0 10px;
+        }
+        /* 分组标题样式：黄色、加粗、放大 */
+        .sidebar .nav-header {
+            padding: 1rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            font-size: 1.1rem;
+            color: #ffc107;
+            margin-bottom: 0.5rem;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+            padding-bottom: 0.5rem;
+        }
+        .main-content {
+            margin-left: 250px;
+            padding: 20px;
+            min-height: 100vh;
+            background-color: #f8f9fa;
+        }
+        .navbar-top {
+            margin-left: 250px;
+            border-bottom: 1px solid #e5e7eb;
+            background-color: white;
+            z-index: 99;
+        }
+
+        /* 响应式调整 */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+            .main-content, .navbar-top {
+                margin-left: 0;
+            }
+        }
+
+        /* 通用卡片样式 */
+        .card {
+            box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+            border: none;
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #0d6efd;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <!-- 顶部简易导航栏 -->
+    <nav class="navbar navbar-light bg-light navbar-top py-2">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">
+                <i class="bi bi-building-fill"></i> OA管理系统
+            </span>
+            {% if session.user_id %}
+            <div class="d-flex align-items-center">
+                <span class="me-3">欢迎：{{ session.real_name }}（{{ session.role }}）</span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-primary btn-sm">
+                    <i class="bi bi-box-arrow-right"></i> 退出登录
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </nav>
+
+    <!-- 左侧边栏导航 -->
+    <div class="sidebar">
+        <div class="sidebar-content">
+            <ul class="nav flex-column">
+                {% if session.user_id %}
+                    <!-- 仪表盘 -->
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'dashboard' %}active{% endif %}"
+                           href="{{ url_for('dashboard') }}">
+                            <i class="bi bi-speedometer2 me-2"></i>仪表盘
+                        </a>
+                    </li>
+
+                    <!-- 员工信息 -->
+                    <li class="nav-header">员工信息</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'employee_info' %}active{% endif %}"
+                           href="{{ url_for('employee_info') }}">
+                            <i class="bi bi-person me-2"></i>个人信息
+                        </a>
+                    </li>
+                    {% if session.role in ['admin', 'manager'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'all_employee_info' %}active{% endif %}"
+                           href="{{ url_for('all_employee_info') }}">
+                            <i class="bi bi-people me-2"></i>全员信息
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'employee_approve' %}active{% endif %}"
+                           href="{{ url_for('employee_approve') }}">
+                            <i class="bi bi-check2-circle me-2"></i>注册审批
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% if session.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'resign_approve' %}active{% endif %}"
+                            href="{{ url_for('resign_approve') }}">
+                            <i class="bi bi-person-x me-2"></i>离职审批
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- 签到 -->
+                    <li class="nav-header">签到管理</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'checkin' %}active{% endif %}"
+                           href="{{ url_for('checkin') }}">
+                            <i class="bi bi-check-circle me-2"></i>今日签到
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'checkin_record' %}active{% endif %}"
+                           href="{{ url_for('checkin_record') }}">
+                            <i class="bi bi-clock-history me-2"></i>签到记录
+                        </a>
+                    </li>
+
+                    <!-- 请假 -->
+                    <li class="nav-header">请假管理</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'leave_apply' %}active{% endif %}"
+                           href="{{ url_for('leave_apply') }}">
+                            <i class="bi bi-calendar-plus me-2"></i>请假申请
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'my_leave' %}active{% endif %}"
+                           href="{{ url_for('my_leave') }}">
+                            <i class="bi bi-calendar-check me-2"></i>我的请假
+                        </a>
+                    </li>
+                    {% if session.role in ['admin', 'manager'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'leave_approve' %}active{% endif %}"
+                           href="{{ url_for('leave_approve') }}">
+                            <i class="bi bi-calendar-check-fill me-2"></i>请假审批
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- 设备 -->
+                    <li class="nav-header">设备管理</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'equipment_list' %}active{% endif %}"
+                           href="{{ url_for('equipment_list') }}">
+                            <i class="bi bi-laptop me-2"></i>设备列表
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'equipment_borrow' %}active{% endif %}"
+                           href="{{ url_for('equipment_borrow') }}">
+                            <i class="bi bi-arrow-down-circle me-2"></i>领用设备
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'equipment_return' %}active{% endif %}"
+                           href="{{ url_for('equipment_return') }}">
+                            <i class="bi bi-arrow-up-circle me-2"></i>归还设备
+                        </a>
+                    </li>
+                    {% if session.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'equipment_add' %}active{% endif %}"
+                           href="{{ url_for('equipment_add') }}">
+                            <i class="bi bi-plus-circle me-2"></i>新增设备
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <!-- 合同 -->
+                    <li class="nav-header">合同管理</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'contract_list' %}active{% endif %}"
+                           href="{{ url_for('contract_list') }}">
+                            <i class="bi bi-file-text me-2"></i>合同列表
+                        </a>
+                    </li>
+                    {% if session.role == 'admin' %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'contract_add' %}active{% endif %}"
+                           href="{{ url_for('contract_add') }}">
+                            <i class="bi bi-file-plus me-2"></i>新增合同
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="nav-header">流程管理</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'workflow/definitions' in request.path %}active{% endif %}"
+                           href="{{ url_for('workflow_definitions') }}">
+                            <i class="bi bi-sitemap me-2"></i>流程定义
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'workflow/start' in request.path %}active{% endif %}"
+                           href="{{ url_for('workflow_definitions') }}">
+                            <i class="bi bi-play-circle me-2"></i>发起流程
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'workflow/approve' in request.path or 'pending_approvals' in request.path %}active{% endif %}"
+                           href="{{ url_for('pending_approvals') }}">
+                            <i class="bi bi-check-square me-2"></i>待审批任务
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if 'my_workflow_instances' in request.path %}active{% endif %}"
+                           href="{{ url_for('my_workflow_instances') }}">
+                            <i class="bi bi-clock-history me-2"></i>我的流程记录
+                        </a>
+                    </li>
+
+                    <!-- 会议室 -->
+                    <li class="nav-header">会议室管理</li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'meeting_apply' %}active{% endif %}"
+                           href="{{ url_for('meeting_apply') }}">
+                            <i class="bi bi-door-open me-2"></i>申请会议室
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'my_meeting' %}active{% endif %}"
+                           href="{{ url_for('my_meeting') }}">
+                            <i class="bi bi-door-closed me-2"></i>我的会议室
+                        </a>
+                    </li>
+                    {% if session.role in ['admin', 'manager'] %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'meeting_approve' %}active{% endif %}"
+                           href="{{ url_for('meeting_approve') }}">
+                            <i class="bi bi-door-closed-fill me-2"></i>会议室审批
+                        </a>
+                    </li>
+                    {% endif %}
+                {% else %}
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'login' %}active{% endif %}"
+                           href="{{ url_for('login') }}">
+                            <i class="bi bi-box-arrow-in-right me-2"></i>登录
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.endpoint == 'register' %}active{% endif %}"
+                           href="{{ url_for('register') }}">
+                            <i class="bi bi-person-plus me-2"></i>注册
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+
+    <!-- 主内容区域 -->
+    <div class="main-content">
+        {% block content %}{% endblock %}
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.staticfile.org/twitter-bootstrap/5.2.3/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // 保存和恢复侧边栏滚动位置
+        document.addEventListener('DOMContentLoaded', function() {
+            const sidebar = document.querySelector('.sidebar-content');
+            const savedPosition = localStorage.getItem('sidebarScrollPosition');
+
+            if (savedPosition) {
+                sidebar.scrollTop = parseInt(savedPosition);
+            }
+
+            // 页面卸载前保存滚动位置
+            window.addEventListener('beforeunload', function() {
+                localStorage.setItem('sidebarScrollPosition', sidebar.scrollTop);
+            });
+
+            // 刷新时保持Active状态（可选增强）
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

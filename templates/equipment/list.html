@@ -1,0 +1,224 @@
+[file name]: list.html
+[file content begin]
+{% extends 'base.html' %}
+
+{% block title %}设备列表 - OA管理系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h4 class="mb-0">
+                <i class="bi bi-laptop me-2"></i>设备管理
+            </h4>
+            {% if session.role == 'admin' %}
+            <a href="{{ url_for('equipment_add') }}" class="btn btn-light btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>新增设备
+            </a>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <!-- 消息提示 -->
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                            {{ message }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <!-- 筛选栏 -->
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="filterEquipment('all')">
+                            全部设备
+                        </button>
+                        <button class="btn btn-outline-success btn-sm" onclick="filterEquipment('active')">
+                            可使用设备
+                        </button>
+                        <button class="btn btn-outline-danger btn-sm" onclick="filterEquipment('scrap')">
+                            已报废设备
+                        </button>
+                        {% if session.role != 'admin' %}
+                        <span class="text-muted ms-auto">提示：普通用户仅可见可使用设备</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设备列表 -->
+            <div class="table-responsive">
+                <table class="table table-striped table-hover align-middle">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>序号</th>
+                            <th>设备名称</th>
+                            <th>设备类型</th>
+                            <th>设备状态</th>
+                            <th>使用状态</th>
+                            <th>当前领用者</th>
+                            <th>领用时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for equip in equipments %}
+                        <tr class="equipment-row {% if equip.is_active == 0 %}table-danger{% endif %}"
+                            data-status="{% if equip.is_active == 1 %}active{% else %}scrap{% endif %}">
+                            <td>{{ loop.index }}</td>
+                            <td>
+                                <strong>{{ equip.name }}</strong>
+                            </td>
+                            <td>{{ equip.type }}</td>
+                            <td>
+                                {% if equip.status == '空闲' %}
+                                <span class="badge bg-success">{{ equip.status }}</span>
+                                {% elif equip.status == '已领用' %}
+                                <span class="badge bg-warning">{{ equip.status }}</span>
+                                {% elif equip.status == '已报废' %}
+                                <span class="badge bg-danger">{{ equip.status }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary">{{ equip.status }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if equip.is_active == 1 %}
+                                <span class="badge bg-success">可使用</span>
+                                {% else %}
+                                <span class="badge bg-danger">已报废</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if equip.user_id %}
+                                {{ equip.borrower.real_name if equip.borrower else '未知用户' }}  <!-- 修改这里 -->
+                                {% else %}
+                                <span class="text-muted">无</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if equip.borrow_time %}
+                                {{ equip.borrow_time.strftime('%Y-%m-%d %H:%M') }}
+                                {% else %}
+                                <span class="text-muted">未领用</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex gap-1">
+                                    {% if equip.is_active == 1 %}
+                                        {% if equip.status == '空闲' and session.role != 'admin' %}
+                                        <a href="{{ url_for('equipment_borrow', equip_id=equip.id) }}"
+                                           class="btn btn-primary btn-sm">
+                                            <i class="bi bi-arrow-down-circle me-1"></i>领用
+                                        </a>
+                                        {% endif %}
+
+                                        {% if equip.status == '已领用' and equip.user_id == session.user_id %}
+                                        <a href="{{ url_for('equipment_return', equip_id=equip.id) }}"
+                                           class="btn btn-info btn-sm">
+                                            <i class="bi bi-arrow-up-circle me-1"></i>归还
+                                        </a>
+                                        {% endif %}
+
+                                        {% if session.role == 'admin' %}
+                                        <button class="btn btn-warning btn-sm"
+                                                onclick="editEquipment({{ equip.id }})">
+                                            <i class="bi bi-pencil me-1"></i>编辑
+                                        </button>
+
+                                        {% if equip.status != '已领用' %}
+                                        <button class="btn btn-danger btn-sm"
+                                                data-bs-toggle="modal"
+                                                data-bs-target="#scrapModal{{ equip.id }}">
+                                            <i class="bi bi-trash me-1"></i>报废
+                                        </button>
+                                        {% else %}
+                                        <button class="btn btn-danger btn-sm disabled" title="设备已领用，无法报废">
+                                            <i class="bi bi-trash me-1"></i>报废
+                                        </button>
+                                        {% endif %}
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">已报废</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+
+                        <!-- 报废确认模态框 -->
+                        {% if session.role == 'admin' and equip.is_active == 1 %}
+                        <div class="modal fade" id="scrapModal{{ equip.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-sm">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title">确认报废</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <p class="mb-0">确定要将 <strong>{{ equip.name }}</strong> 标记为报废吗？</p>
+                                        <small class="text-danger">此操作不可恢复！</small>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">取消</button>
+                                        <form method="POST" action="{{ url_for('equipment_scrap', equip_id=equip.id) }}" class="d-inline">
+                                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                            <button type="submit" class="btn btn-danger btn-sm">确认报废</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <tr>
+                            <td colspan="8" class="text-center text-muted py-4">
+                                <i class="bi bi-box-seam" style="font-size: 2rem; margin-bottom: 10px; display: block;"></i>
+                                暂无设备数据
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 设备筛选功能
+    function filterEquipment(type) {
+        const rows = document.querySelectorAll('.equipment-row');
+        rows.forEach(row => {
+            switch(type) {
+                case 'all':
+                    row.style.display = '';
+                    break;
+                case 'active':
+                    row.style.display = row.dataset.status === 'active' ? '' : 'none';
+                    break;
+                case 'scrap':
+                    row.style.display = row.dataset.status === 'scrap' ? '' : 'none';
+                    break;
+            }
+        });
+    }
+
+    // 编辑设备（预留方法，需配合编辑路由）
+    function editEquipment(equipId) {
+        window.location.href = `/equipment/edit/${equipId}`;
+    }
+
+    // 页面加载默认筛选（普通用户只看可使用设备）
+    document.addEventListener('DOMContentLoaded', function() {
+        {% if session.role != 'admin' %}
+        filterEquipment('active');
+        {% else %}
+        filterEquipment('all');
+        {% endif %}
+    });
+</script>
+{% endblock %}
+[file content end]

@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block title %}今日签到 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card text-center">
+                <div class="card-header bg-primary text-white">
+                    <h4>今日签到</h4>
+                </div>
+                <div class="card-body">
+                    <h5 class="card-title">{{ today_str }}</h5>
+                    {% if has_checkin %}
+                        <div class="alert alert-success">
+                            <h4>✅ 您已完成今日签到</h4>
+                            <p>签到时间：{{ has_checkin.check_in_time.strftime('%H:%M:%S') }}</p>
+                            <p>状态：{{ has_checkin.status }}</p>
+                        </div>
+                    {% else %}
+                        <p class="card-text">点击下方按钮完成今日签到</p>
+                        <form method="POST">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-primary btn-lg">立即签到</button>
+                        </form>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,416 @@
+{% extends "base.html" %}
+
+{% block title %}流程定义详情 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('workflow_definitions') }}">流程定义</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">流程详情</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <div>
+                        <h5 class="mb-0">
+                            <i class="fas fa-sitemap me-2"></i>流程定义详情
+                            {% if definition.status == '停用' %}
+                                <span class="badge bg-danger ms-2">已停用</span>
+                            {% else %}
+                                <span class="badge bg-success ms-2">启用中</span>
+                            {% endif %}
+                        </h5>
+                    </div>
+                    <div>
+                        {% if session.role in ['admin', 'manager'] %}
+                            <a href="{{ url_for('edit_workflow_definition', definition_id=definition.id) }}"
+                               class="btn btn-sm btn-primary me-2">
+                                <i class="fas fa-edit me-1"></i> 编辑
+                            </a>
+                        {% endif %}
+                        <a href="{{ url_for('workflow_definitions') }}" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-arrow-left me-1"></i> 返回
+                        </a>
+                    </div>
+                </div>
+
+                <div class="card-body">
+                    <!-- 流程基本信息 -->
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="120">流程名称：</th>
+                                    <td>{{ definition.name }}</td>
+                                </tr>
+                                <tr>
+                                    <th>所属部门：</th>
+                                    <td>
+                                        <span class="badge bg-info">{{ definition.department }}</span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>触发事件：</th>
+                                    <td>
+                                        <span class="badge bg-secondary">{{ definition.trigger_event }}</span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <table class="table table-borderless table-sm">
+                                <tr>
+                                    <th width="120">创建人：</th>
+                                    <td>
+                                        {# 这里需要视图函数传递 creator_info 变量 #}
+                                        {% if creator_info %}
+                                            {{ creator_info.real_name }} ({{ creator_info.username }})
+                                        {% else %}
+                                            {% if definition.created_by %}
+                                                用户ID: {{ definition.created_by }}
+                                            {% else %}
+                                                未知
+                                            {% endif %}
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>创建时间：</th>
+                                    <td>{{ definition.created_time.strftime('%Y-%m-%d %H:%M:%S') if definition.created_time else '未记录' }}</td>
+                                </tr>
+                                <tr>
+                                    <th>流程状态：</th>
+                                    <td>
+                                        {% if definition.status == '启用' %}
+                                            <span class="badge bg-success">启用</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">停用</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 流程描述 -->
+                    {% if definition.description %}
+                        <div class="alert alert-light border mb-4">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-info-circle me-2"></i>流程描述
+                            </h6>
+                            <p class="mb-0">{{ definition.description }}</p>
+                        </div>
+                    {% endif %}
+
+                    <!-- 流程步骤 -->
+                    <div class="mt-4">
+                        <h5 class="mb-3">
+                            <i class="fas fa-steps me-2"></i>流程步骤
+                            <small class="text-muted">(共 {{ steps|length }} 步)</small>
+                        </h5>
+
+                        {% if steps and steps|length > 0 %}
+                            <!-- 步骤时间线视图 -->
+                            <div class="timeline mb-5">
+                                {% for step in steps %}
+                                    <div class="timeline-item {% if loop.index % 2 == 0 %}timeline-item-right{% else %}timeline-item-left{% endif %}">
+                                        <div class="timeline-point">
+                                            <span class="badge rounded-circle bg-primary">{{ step.step_order }}</span>
+                                        </div>
+                                        <div class="timeline-content card">
+                                            <div class="card-body">
+                                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                                    <h6 class="card-title mb-0">第 {{ step.step_order }} 步</h6>
+                                                    <div>
+                                                        <span class="badge {% if step.required_role == 'admin' %}bg-danger{% elif step.required_role == 'manager' %}bg-warning text-dark{% else %}bg-info{% endif %}">
+                                                            {% if step.required_role == 'admin' %}
+                                                                管理员
+                                                            {% elif step.required_role == 'manager' %}
+                                                                经理
+                                                            {% else %}
+                                                                员工
+                                                            {% endif %}
+                                                        </span>
+                                                        <span class="badge bg-light text-dark ms-1">
+                                                            <i class="fas fa-clock me-1"></i> {{ step.timeout_hours }}小时
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                {% if step.description %}
+                                                    <p class="card-text">{{ step.description }}</p>
+                                                {% else %}
+                                                    <p class="card-text text-muted">暂无描述</p>
+                                                {% endif %}
+
+                                                <div class="text-muted small">
+                                                    <i class="fas fa-user-check me-1"></i> 审批角色：{{ step.required_role }}
+                                                    <i class="fas fa-hourglass-half ms-3 me-1"></i> 超时时间：{{ step.timeout_hours }}小时
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% endfor %}
+
+                                <!-- 结束节点 -->
+                                <div class="timeline-item timeline-item-center">
+                                    <div class="timeline-point">
+                                        <span class="badge rounded-circle bg-success">
+                                            <i class="fas fa-check"></i>
+                                        </span>
+                                    </div>
+                                    <div class="timeline-content card">
+                                        <div class="card-body text-center">
+                                            <h6 class="card-title mb-0">流程结束</h6>
+                                            <p class="card-text text-muted small">所有步骤审批通过后流程完成</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 步骤表格视图（备用） -->
+                            <div class="table-responsive d-none d-md-block">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th width="80" class="text-center">步骤</th>
+                                            <th>步骤描述</th>
+                                            <th width="150">审批角色</th>
+                                            <th width="120" class="text-center">超时时间</th>
+                                            <th width="100" class="text-center">状态</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for step in steps %}
+                                            <tr>
+                                                <td class="text-center fw-bold">#{{ step.step_order }}</td>
+                                                <td>
+                                                    {{ step.description or '未设置描述' }}
+                                                    {% if not step.description %}
+                                                        <span class="text-muted small">(无描述)</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">
+                                                    {% if step.required_role == 'admin' %}
+                                                        <span class="badge bg-danger">管理员</span>
+                                                    {% elif step.required_role == 'manager' %}
+                                                        <span class="badge bg-warning text-dark">经理</span>
+                                                    {% else %}
+                                                        <span class="badge bg-info">员工</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td class="text-center">{{ step.timeout_hours }}小时</td>
+                                                <td class="text-center">
+                                                    {% if step.step_order == 1 %}
+                                                        <span class="badge bg-primary">起始步骤</span>
+                                                    {% elif step.step_order == steps|length %}
+                                                        <span class="badge bg-success">最终步骤</span>
+                                                    {% else %}
+                                                        <span class="badge bg-secondary">中间步骤</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                该流程尚未定义任何步骤。请先添加步骤以使流程生效。
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- 流程使用说明 -->
+                    <div class="mt-5">
+                        <div class="card">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-question-circle me-2"></i>如何使用此流程
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <ul class="list-group list-group-flush">
+                                    <li class="list-group-item">
+                                        <i class="fas fa-play text-success me-2"></i>
+                                        <strong>发起流程：</strong>当触发事件"{{ definition.trigger_event }}"发生时，可以发起此流程
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-user-check text-primary me-2"></i>
+                                        <strong>审批流程：</strong>按照步骤顺序，由指定角色的用户进行审批
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-clock text-warning me-2"></i>
+                                        <strong>超时处理：</strong>每个步骤有指定的超时时间，超时未处理将提醒审批人
+                                    </li>
+                                    <li class="list-group-item">
+                                        <i class="fas fa-ban text-danger me-2"></i>
+                                        <strong>流程终止：</strong>任意步骤被拒绝，整个流程将终止
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 操作按钮 -->
+                    <div class="d-flex justify-content-between mt-4">
+                        <div>
+                            {% if definition.status == '启用' %}
+                                <a href="{{ url_for('start_workflow', def_id=definition.id) }}"
+                                   class="btn btn-success">
+                                    <i class="fas fa-play me-1"></i> 发起此流程
+                                </a>
+                            {% else %}
+                                <button class="btn btn-success" disabled title="流程已停用，无法发起">
+                                    <i class="fas fa-play me-1"></i> 发起此流程
+                                </button>
+                            {% endif %}
+                        </div>
+
+                        <div>
+                            <a href="{{ url_for('workflow_definitions') }}" class="btn btn-outline-secondary me-2">
+                                <i class="fas fa-list me-1"></i> 返回列表
+                            </a>
+
+                            {% if session.role in ['admin', 'manager'] %}
+                                <a href="{{ url_for('edit_workflow_definition', definition_id=definition.id) }}"
+                                   class="btn btn-primary">
+                                    <i class="fas fa-cog me-1"></i> 管理流程
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block styles %}
+<style>
+    /* 时间线样式 */
+    .timeline {
+        position: relative;
+        padding: 20px 0;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 50%;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: #e9ecef;
+        transform: translateX(-50%);
+    }
+
+    .timeline-item {
+        display: flex;
+        margin-bottom: 30px;
+        position: relative;
+        width: 100%;
+    }
+
+    .timeline-item-left {
+        justify-content: flex-start;
+    }
+
+    .timeline-item-right {
+        justify-content: flex-end;
+    }
+
+    .timeline-item-center {
+        justify-content: center;
+    }
+
+    .timeline-point {
+        position: absolute;
+        left: 50%;
+        top: 0;
+        width: 40px;
+        height: 40px;
+        transform: translateX(-50%);
+        z-index: 2;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timeline-content {
+        width: calc(50% - 40px);
+        max-width: 500px;
+    }
+
+    .timeline-item-left .timeline-content {
+        margin-right: 40px;
+    }
+
+    .timeline-item-right .timeline-content {
+        margin-left: 40px;
+    }
+
+    .timeline-item-center .timeline-content {
+        width: 200px;
+        text-align: center;
+    }
+
+    /* 响应式调整 */
+    @media (max-width: 768px) {
+        .timeline::before {
+            left: 20px;
+        }
+
+        .timeline-item {
+            justify-content: flex-start !important;
+        }
+
+        .timeline-point {
+            left: 20px;
+        }
+
+        .timeline-content {
+            width: calc(100% - 60px);
+            margin-left: 60px !important;
+            margin-right: 0 !important;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 高亮当前页面
+        const currentNav = document.querySelector('a[href*="workflow_definitions"]');
+        if (currentNav) {
+            const navItem = currentNav.closest('.nav-item');
+            if (navItem) {
+                navItem.classList.add('active');
+            }
+        }
+
+        // 发起流程按钮提示
+        const startBtn = document.querySelector('a[href*="start_workflow"]');
+        if (startBtn) {
+            startBtn.addEventListener('click', function(e) {
+                if (this.disabled) {
+                    e.preventDefault();
+                    alert('此流程已停用，无法发起新的流程实例。');
+                } else {
+                    if (!confirm('确定要发起此流程吗？')) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

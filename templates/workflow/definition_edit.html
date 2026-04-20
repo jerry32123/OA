@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}编辑流程定义 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{{ url_for('dashboard') }}">首页</a></li>
+                    <li class="breadcrumb-item"><a href="{{ url_for('workflow_definitions') }}">流程定义</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">编辑流程定义</li>
+                </ol>
+            </nav>
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        <i class="fas fa-edit me-2"></i>编辑流程定义
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <form method="POST" action="{{ url_for('edit_workflow_definition', definition_id=definition.id) }}">
+                        {{ form.csrf_token if form else '' }}
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="name" class="form-label">流程名称 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="name" name="name"
+                                           value="{{ definition.name }}" required maxlength="100">
+                                    <div class="form-text">请输入流程名称，不超过100个字符</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="department" class="form-label">所属部门 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="department" name="department" required>
+                                        <option value="">请选择部门</option>
+                                        {% for dept in departments %}
+                                            <option value="{{ dept }}" {% if dept == definition.department %}selected{% endif %}>
+                                                {{ dept }}
+                                            </option>
+                                        {% endfor %}
+                                    </select>
+                                    <div class="form-text">请选择该流程适用的部门</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="trigger_event" class="form-label">触发事件 <span class="text-danger">*</span></label>
+                                    <input type="text" class="form-control" id="trigger_event" name="trigger_event"
+                                           value="{{ definition.trigger_event }}" required maxlength="50">
+                                    <div class="form-text">请输入触发事件名称，如"请假申请"、"设备领用"等</div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="status" class="form-label">流程状态 <span class="text-danger">*</span></label>
+                                    <select class="form-select" id="status" name="status" required>
+                                        <option value="启用" {% if definition.status == '启用' %}selected{% endif %}>启用</option>
+                                        <option value="停用" {% if definition.status == '停用' %}selected{% endif %}>停用</option>
+                                    </select>
+                                    <div class="form-text">停用的流程将不可用于发起新流程</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="description" class="form-label">流程描述</label>
+                            <textarea class="form-control" id="description" name="description"
+                                      rows="4" maxlength="500">{{ definition.description }}</textarea>
+                            <div class="form-text">请简要描述该流程的目的和适用范围，不超过500个字符</div>
+                        </div>
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-info-circle me-2"></i>
+                            <strong>提示：</strong> 流程步骤的编辑需要在专门的步骤管理页面进行操作
+                        </div>
+
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{{ url_for('workflow_definitions') }}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-1"></i> 返回列表
+                            </a>
+                            <div>
+                                <button type="button" class="btn btn-outline-danger me-2" data-bs-toggle="modal" data-bs-target="#deleteModal">
+                                    <i class="fas fa-trash me-1"></i> 删除
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-1"></i> 保存更改
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 流程步骤信息 -->
+            <div class="card mt-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-steps me-2"></i>流程步骤
+                    </h5>
+                    <a href="{{ url_for('workflow_definition_detail', def_id=definition.id) }}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-eye me-1"></i> 查看详情
+                    </a>
+                </div>
+                <div class="card-body">
+                    {% if steps and steps|length > 0 %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th width="80">步骤序号</th>
+                                        <th>步骤描述</th>
+                                        <th width="150">审批角色</th>
+                                        <th width="120">超时时间</th>
+                                        <th width="100">状态</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for step in steps %}
+                                        <tr>
+                                            <td class="fw-bold">第{{ step.step_order }}步</td>
+                                            <td>{{ step.description or '未设置描述' }}</td>
+                                            <td>
+                                                {% if step.required_role == 'admin' %}
+                                                    <span class="badge bg-danger">管理员</span>
+                                                {% elif step.required_role == 'manager' %}
+                                                    <span class="badge bg-warning text-dark">经理</span>
+                                                {% else %}
+                                                    <span class="badge bg-info">员工</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ step.timeout_hours }}小时</td>
+                                            <td>
+                                                {% if definition.status == '启用' %}
+                                                    <span class="badge bg-success">启用</span>
+                                                {% else %}
+                                                    <span class="badge bg-secondary">停用</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            该流程尚未定义任何步骤。请先添加步骤以使流程生效。
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 删除确认模态框 -->
+<div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteModalLabel">
+                    <i class="fas fa-exclamation-triangle text-warning me-2"></i>确认删除
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>您确定要删除流程定义 <strong>"{{ definition.name }}"</strong> 吗？</p>
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    <strong>警告：</strong> 此操作不可恢复！如果该流程已有相关实例，删除操作将被阻止。
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <a href="{{ url_for('delete_workflow_definition', definition_id=definition.id) }}"
+                   class="btn btn-danger">
+                    <i class="fas fa-trash me-1"></i> 确认删除
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 表单验证
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.querySelector('form');
+
+        form.addEventListener('submit', function(event) {
+            // 简单的前端验证
+            const name = document.getElementById('name').value.trim();
+            const department = document.getElementById('department').value;
+            const triggerEvent = document.getElementById('trigger_event').value.trim();
+
+            if (!name) {
+                alert('请填写流程名称');
+                event.preventDefault();
+                return false;
+            }
+
+            if (!department) {
+                alert('请选择所属部门');
+                event.preventDefault();
+                return false;
+            }
+
+            if (!triggerEvent) {
+                alert('请填写触发事件');
+                event.preventDefault();
+                return false;
+            }
+
+            return true;
+        });
+
+        // 删除按钮提示
+        const deleteBtn = document.querySelector('a[href*="delete_workflow_definition"]');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', function(e) {
+                if (!confirm('确定要删除这个流程定义吗？此操作不可恢复！')) {
+                    e.preventDefault();
+                    return false;
+                }
+            });
+        }
+    });
+</script>
+{% endblock %}

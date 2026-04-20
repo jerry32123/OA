@@ -1,0 +1,63 @@
+<!-- templates/common/navbar.html -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+    <div class="container">
+        <a class="navbar-brand" href="{{ url_for('index') }}">企业OA系统</a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <!-- 首页 -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('index') }}">首页</a>
+                </li>
+                <!-- 员工信息 -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('employee.info') }}">员工信息</a>
+                </li>
+                <!-- 签到管理 -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('checkin.index') }}">签到管理</a>
+                </li>
+                <!-- 请假管理 -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('leave.apply') }}">请假管理</a>
+                </li>
+                <!-- 设备管理（管理员可见） -->
+                {% if current_user.is_admin %}
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('equipment.add') }}">设备管理</a>
+                </li>
+                {% endif %}
+                <!-- 合同管理（管理员可见） -->
+                {% if current_user.is_admin %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('contract.list') }}">合同管理</a>
+                </li>
+                {% endif %}
+                <!-- 会议室管理 -->
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('meeting.apply') }}">会议室管理</a>
+                </li>
+            </ul>
+            <!-- 用户信息 + 退出登录 -->
+            <ul class="navbar-nav">
+                {% if current_user.is_authenticated %}
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
+                        {{ current_user.real_name }}（{{ current_user.role }}）
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="{{ url_for('user.profile') }}">个人中心</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="{{ url_for('user.logout') }}">退出登录</a></li>
+                    </ul>
+                </li>
+                {% else %}
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('user.login') }}">登录</a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>

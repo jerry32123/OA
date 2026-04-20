@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}我的工作流实例 - 办公自动化系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>我的工作流实例</h2>
+        <!-- 先跳转到流程定义列表，让用户选择要发起的流程 -->
+        <a href="{{ url_for('workflow_definitions') }}" class="btn btn-primary">
+            <i class="bi bi-plus-circle"></i> 发起新工作流
+        </a>
+    </div>
+
+    <!-- 状态筛选器 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-4">
+                    <select name="status" class="form-select" onchange="this.form.submit()">
+                        <option value="">所有状态</option>
+                        <option value="进行中" {% if request.args.get('status') == '进行中' %}selected{% endif %}>进行中</option>
+                        <option value="已完成" {% if request.args.get('status') == '已完成' %}selected{% endif %}>已完成</option>
+                        <option value="已拒绝" {% if request.args.get('status') == '已拒绝' %}selected{% endif %}>已拒绝</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select name="workflow" class="form-select" onchange="this.form.submit()">
+                        <option value="">所有流程</option>
+                        {% for workflow in all_workflows %}
+                        <option value="{{ workflow.id }}" {% if request.args.get('workflow') == workflow.id|string %}selected{% endif %}>
+                            {{ workflow.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.location.href='{{ url_for('my_workflow_instances') }}'">
+                        重置筛选
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- 工作流实例列表 -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>流程名称</th>
+                        <th>发起时间</th>
+                        <th>当前步骤</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if instances %}
+                        {% for instance in instances %}
+                        <tr>
+                            <td>
+                                {{ instance.workflow_name }}
+                            </td>
+                            <td>
+                                {{ instance.created_at.strftime('%Y-%m-%d %H:%M') }}
+                            </td>
+                            <td>
+                                {% if instance.current_step %}
+                                    {{ instance.current_step.step_order }}. {{ instance.current_step.description or '处理中' }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if instance.status == '进行中' %}
+                                    <span class="badge bg-primary">进行中</span>
+                                {% elif instance.status == '已完成' %}
+                                    <span class="badge bg-success">已完成</span>
+                                {% else %}
+                                    <span class="badge bg-danger">已拒绝</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{{ url_for('instance_detail', instance_id=instance.id) }}" class="btn btn-sm btn-outline-primary">
+                                    查看详情
+                                </a>
+                            </td>
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ url_for('view_workflow_definition', definition_id=definition.id) }}"
+                                       class="btn btn-outline-primary">查看</a>
+
+                                    <!-- 新增：发起该流程的按钮，传递def_id -->
+                                    <a href="{{ url_for('start_workflow', def_id=definition.id) }}"
+                                       class="btn btn-outline-success">发起</a>
+
+                                    {% if session.role in ['admin', 'manager'] %}
+                                    <a href="{{ url_for('edit_workflow_definition', definition_id=definition.id) }}"
+                                       class="btn btn-outline-secondary">编辑</a>
+                                    <button type="button" class="btn btn-outline-danger"
+                                            onclick="confirmDelete({{ definition.id }})">删除</button>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center py-4">
+                                <div class="text-muted">
+                                    <i class="bi bi-inbox h3 mb-2"></i>
+                                    <p>暂无工作流实例记录</p>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- 分页控件 -->
+        {% if pagination and pagination.pages > 1 %}
+        <div class="card-footer">
+            <nav>
+                <ul class="pagination justify-content-center mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('my_instances', page=pagination.prev_num, **request.args) }}">上一页</a>
+                    </li>
+                    
+                    {% for page_num in pagination.iter_pages() %}
+                        {% if page_num %}
+                            <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('my_instances', page=page_num,** request.args) }}">{{ page_num }}</a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link" href="{{ url_for('my_instances', page=pagination.next_num, **request.args) }}">下一页</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 页面加载完成后初始化
+    document.addEventListener('DOMContentLoaded', function() {
+        // 可以添加一些交互效果，如悬停动画等
+        const tableRows = document.querySelectorAll('tbody tr');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.classList.add('shadow-sm');
+                this.style.transform = 'translateY(-2px)';
+                this.style.transition = 'all 0.2s ease';
+            });
+            row.addEventListener('mouseleave', function() {
+                this.classList.remove('shadow-sm');
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    });
+</script>
+{% endblock %}

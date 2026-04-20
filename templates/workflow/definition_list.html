@@ -1,0 +1,169 @@
+{% extends 'base.html' %}
+
+{% block title %}工作流定义列表{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>工作流定义列表</h2>
+        <a href="{{ url_for('add_workflow_definition') }}" class="btn btn-primary">
+            <i class="fas fa-plus"></i> 新增工作流定义
+        </a>
+    </div>
+
+    <!-- 筛选表单 -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="GET" class="row g-3">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="keyword" placeholder="关键词搜索"
+                           value="{{ keyword }}">
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="department">
+                        <option value="">所有部门</option>
+                        {% for dept in departments %}
+                        <option value="{{ dept }}" {% if department == dept %}selected{% endif %}>
+                            {{ dept }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select class="form-select" name="status">
+                        <option value="">所有状态</option>
+                        <option value="启用" {% if status == '启用' %}selected{% endif %}>启用</option>
+                        <option value="禁用" {% if status == '禁用' %}selected{% endif %}>禁用</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" class="btn btn-primary">搜索</button>
+                    <a href="{{ url_for('workflow_definitions') }}" class="btn btn-secondary">重置</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if definitions %}
+    <div class="card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>工作流名称</th>
+                        <th>描述</th>
+                        <th>触发事件</th>
+                        <th>部门</th>
+                        <th>状态</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for definition in definitions %}
+                    <tr>
+                        <td>{{ definition.id }}</td>
+                        <td>{{ definition.name }}</td>
+                        <td>{{ definition.description or '无描述' }}</td>
+                        <td>{{ definition.trigger_event }}</td>
+                        <td>{{ definition.department }}</td>
+                        <td>
+                            {% if definition.status == '启用' %}
+                            <span class="badge bg-success">启用</span>
+                            {% else %}
+                            <span class="badge bg-secondary">禁用</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ definition.created_time.strftime('%Y-%m-%d %H:%M') }}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                {% if session.role in ['admin', 'manager'] %}
+                                <a href="{{ url_for('edit_workflow_definition', definition_id=definition.id) }}"
+                                   class="btn btn-outline-primary">编辑</a>
+                                {% endif %}
+                                <a href="{{ url_for('workflow_definition_detail', def_id=definition.id) }}"
+                                   class="btn btn-outline-info">查看</a>
+                                {% if session.role in ['admin', 'manager'] %}
+                                <button onclick="confirmDelete({{ definition.id }})"
+                                        class="btn btn-outline-danger">删除</button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- 分页控件 -->
+    {% if pagination.pages > 1 %}
+    <div class="d-flex justify-content-center mt-4">
+        <nav aria-label="Page navigation">
+            <ul class="pagination">
+                <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('workflow_definitions', page=pagination.prev_num, keyword=keyword, department=department, status=status) }}"
+                       aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+
+                {% for page_num in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                    {% if page_num %}
+                        <li class="page-item {% if page_num == pagination.page %}active{% endif %}">
+                            <a class="page-link" href="{{ url_for('workflow_definitions', page=page_num, keyword=keyword, department=department, status=status) }}">
+                                {{ page_num }}
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">...</span>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                    <a class="page-link" href="{{ url_for('workflow_definitions', page=pagination.next_num, keyword=keyword, department=department, status=status) }}"
+                       aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> 暂无工作流定义，请点击"新增工作流定义"创建
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // 确认删除函数
+    function confirmDelete(definitionId) {
+        if (confirm('确定要删除这个工作流定义吗？删除后将无法恢复，相关的流程实例可能会受影响！')) {
+            window.location.href = "{{ url_for('delete_workflow_definition', definition_id=0) }}".replace('0', definitionId);
+        }
+    }
+
+    // 表格行悬停效果
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableRows = document.querySelectorAll('tbody tr');
+        tableRows.forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.classList.add('shadow-sm');
+                this.style.transform = 'translateY(-2px)';
+                this.style.transition = 'all 0.2s ease';
+            });
+            row.addEventListener('mouseleave', function() {
+                this.classList.remove('shadow-sm');
+                this.style.transform = 'translateY(0)';
+            });
+        });
+    });
+</script>
+{% endblock %}

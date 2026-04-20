@@ -1,0 +1,77 @@
+{% extends 'base.html' %}
+
+{% block title %}离职审批 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>待审批离职申请</h3>
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>用户名</th>
+                            <th>真实姓名</th>
+                            <th>部门</th>
+                            <th>预计离职日期</th>
+                            <th>离职原因</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.real_name }}</td>
+                            <td>{{ user.department }}</td>
+                            <td>{{ user.expected_resign_date }}</td>
+                            <td>{{ user.resignation_reason }}</td>
+                            <td>
+                                <button class="btn btn-primary btn-sm" data-bs-toggle="modal"
+                                        data-bs-target="#approveModal{{ user.id }}">处理</button>
+
+                                <!-- 审批模态框 -->
+                                <div class="modal fade" id="approveModal{{ user.id }}" tabindex="-1">
+                                    <div class="modal-dialog">
+                                        <div class="modal-content">
+                                            <div class="modal-header bg-primary text-white">
+                                                <h5 class="modal-title">审批离职申请</h5>
+                                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            </div>
+                                            <div class="modal-body">
+                                                <form method="POST">
+                                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+
+                                                    <div class="mb-3">
+                                                        <label class="form-label">审批意见</label>
+                                                        <textarea class="form-control" name="comment" rows="3" required></textarea>
+                                                    </div>
+
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                                                        <button type="submit" name="status" value="已批准" class="btn btn-success">批准</button>
+                                                        <button type="submit" name="status" value="已拒绝" class="btn btn-danger">拒绝</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">暂无待审批的离职申请</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% block title %}创建流程定义 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="col-md-10 offset-md-1">
+        <div class="card">
+            <div class="card-header bg-primary text-white">
+                <h4>创建审批流程定义</h4>
+            </div>
+            <div class="card-body">
+                <form method="POST" id="workflowForm">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">流程名称</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">触发事件</label>
+                            <select class="form-select" name="trigger_event" required>
+                                <option value="请假">请假申请</option>
+                                <option value="设备领用">设备领用</option>
+                                <option value="离职">离职申请</option>
+                                <option value="会议室">会议室预约</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">所属部门</label>
+                        <input type="text" class="form-control" name="department"
+                               value="{{ session.department }}" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">流程描述</label>
+                        <textarea class="form-control" name="description" rows="2"></textarea>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">步骤数量</label>
+                        <input type="number" class="form-control" name="step_count"
+                               value="1" min="1" max="5" id="stepCount" required>
+                    </div>
+
+                    <div id="stepsContainer">
+                        <!-- 步骤动态生成区域 -->
+                        <div class="border p-3 mb-3">
+                            <h5>步骤 1</h5>
+                            <div class="row mb-2">
+                                <div class="col-md-4">
+                                    <label>所需角色</label>
+                                    <select class="form-select" name="step_1_role" required>
+                                        <option value="manager">部门经理</option>
+                                        <option value="admin">管理员</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-4">
+                                    <label>超时时间(小时)</label>
+                                    <input type="number" class="form-control" name="step_1_timeout" value="24">
+                                </div>
+                                <div class="col-md-4">
+                                    <label>步骤描述</label>
+                                    <input type="text" class="form-control" name="step_1_desc" placeholder="例如：部门经理审批">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">保存流程定义</button>
+                    <a href="{{ url_for('workflow_definitions') }}" class="btn btn-secondary ms-2">返回</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// 动态生成步骤表单
+document.getElementById('stepCount').addEventListener('change', function() {
+    const count = this.value;
+    const container = document.getElementById('stepsContainer');
+    container.innerHTML = '';
+
+    for (let i = 1; i <= count; i++) {
+        container.innerHTML += `
+        <div class="border p-3 mb-3">
+            <h5>步骤 ${i}</h5>
+            <div class="row mb-2">
+                <div class="col-md-4">
+                    <label>所需角色</label>
+                    <select class="form-select" name="step_${i}_role" required>
+                        <option value="manager">部门经理</option>
+                        <option value="admin">管理员</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>超时时间(小时)</label>
+                    <input type="number" class="form-control" name="step_${i}_timeout" value="24">
+                </div>
+                <div class="col-md-4">
+                    <label>步骤描述</label>
+                    <input type="text" class="form-control" name="step_${i}_desc" placeholder="例如：部门经理审批">
+                </div>
+            </div>
+        </div>`;
+    }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,62 @@
+{% extends 'base.html' %}
+
+{% block title %}新增合同{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">新增合同</h4>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="contract_name" class="form-label">合同名称</label>
+                    <input type="text" class="form-control" id="contract_name" name="contract_name" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="contract_no" class="form-label">合同编号</label>
+                    <input type="text" class="form-control" id="contract_no" name="contract_no" placeholder="如：HT2025001" required>
+                </div>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="party_a" class="form-label">甲方</label>
+                    <input type="text" class="form-control" id="party_a" name="party_a" required>
+                </div>
+                <div class="col-md-6">
+                    <label for="party_b" class="form-label">乙方</label>
+                    <input type="text" class="form-control" id="party_b" name="party_b" required>
+                </div>
+            </div>
+
+            <!-- 新增：签订日期字段 -->
+            <div class="mb-3">
+                <label for="sign_time" class="form-label">签订日期</label>
+                <input type="date" class="form-control" id="sign_time" name="sign_time" required>
+            </div>
+
+            <!-- 新增：合同内容字段 -->
+            <div class="mb-3">
+                <label for="content" class="form-label">合同内容</label>
+                <textarea class="form-control" id="content" name="content" rows="5"></textarea>
+            </div>
+
+            <!-- 新增：合同状态字段 -->
+            <div class="mb-3">
+                <label for="status" class="form-label">状态</label>
+                <select class="form-select" id="status" name="status" required>
+                    <option value="有效">有效</option>
+                    <option value="失效">失效</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn btn-primary">保存合同</button>
+            <a href="{{ url_for('contract_list') }}" class="btn btn-secondary">返回列表</a>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,64 @@
+{% extends 'base.html' %}
+
+{% block title %}合同管理{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+        <h4 class="mb-0">合同列表</h4>
+        {% if session.role == 'admin' %}
+        <a href="{{ url_for('contract_add') }}" class="btn btn-light btn-sm">新增合同</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-striped table-hover">
+                <thead class="table-dark">
+                    <tr>
+                        <th>ID</th>
+                        <th>合同名称</th>
+                        <th>合同编号</th>
+                        <th>甲方</th>
+                        <th>乙方</th>
+                        <th>签订时间</th>
+                        <th>状态</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for contract in contracts %}
+                    <tr>
+                        <td>{{ contract.id }}</td>
+                        <td>{{ contract.contract_name }}</td>
+                        <td>{{ contract.contract_no }}</td>
+                        <td>{{ contract.party_a }}</td>
+                        <td>{{ contract.party_b }}</td>
+                        <td>{{ contract.sign_time.strftime('%Y-%m-%d') }}</td>
+                        <!-- 在表格操作列添加 -->
+                        <td>
+                            <span class="badge {% if contract.status == '有效' %}bg-success{% else %}bg-danger{% endif %}">
+                                {{ contract.status }}
+                            </span>
+                        </td>
+                        <td>
+                            {% if session.role == 'admin' %}
+                            <a href="{{ url_for('contract_edit', contract_id=contract.id) }}" class="btn btn-warning btn-sm">编辑</a>
+                            {% else %}
+                            <span class="text-muted">不可操作</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center text-muted">暂无合同数据</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% if session.role == 'admin' %}
+        <a href="{{ url_for('contract_add') }}" class="btn btn-primary">新增合同</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

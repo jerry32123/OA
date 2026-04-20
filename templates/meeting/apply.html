@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+
+{% block title %}申请会议室{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-primary text-white">
+        <h4 class="mb-0">会议室申请</h4>
+    </div>
+    <div class="card-body">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% if rooms %}
+        <form method="POST" onsubmit="return validateForm()">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label for="room_id" class="form-label">选择会议室 <span class="text-danger">*</span></label>
+                <select class="form-select" id="room_id" name="room_id" required onchange="checkConflict()">
+                    <option value="">-- 请选择会议室 --</option>
+                    {% for room in rooms %}
+                    <option value="{{ room.id }}" data-capacity="{{ room.capacity }}">
+                        {{ room.room_no }} (可容纳{{ room.capacity }}人)
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label for="start_time" class="form-label">开始时间 <span class="text-danger">*</span></label>
+                    <input type="datetime-local" class="form-control" id="start_time" name="start_time" required onchange="checkConflict()">
+                </div>
+                <div class="col-md-6">
+                    <label for="end_time" class="form-label">结束时间 <span class="text-danger">*</span></label>
+                    <input type="datetime-local" class="form-control" id="end_time" name="end_time" required onchange="checkConflict()">
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="participants" class="form-label">参与人数 <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" id="participants" name="participants" min="1"
+                       placeholder="请输入参与人数" required oninput="checkCapacity()">
+                <div id="capacity-alert" class="form-text text-danger d-none">
+                    参与人数超过会议室容纳量
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label for="reason" class="form-label">申请原因 <span class="text-danger">*</span></label>
+                <textarea class="form-control" id="reason" name="reason" rows="3"
+                          placeholder="请说明会议主题及用途" required></textarea>
+            </div>
+
+            <div id="conflict-alert" class="alert alert-danger d-none mb-3">
+                <i class="bi bi-exclamation-circle"></i> 所选时间段该会议室已被占用，请重新选择
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">提交申请</button>
+                <a href="{{ url_for('my_meeting') }}" class="btn btn-secondary">查看我的申请</a>
+                <button type="reset" class="btn btn-outline-secondary">重置</button>
+            </div>
+        </form>
+        {% else %}
+        <div class="alert alert-warning">
+            <h4 class="alert-heading">暂无可用会议室</h4>
+            <p>所有会议室均已被预约或未配置，请联系管理员或更换时间重试</p>
+            <a href="{{ url_for('my_meeting') }}" class="btn btn-primary mt-2">查看我的申请</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// 实时检查会议室容量
+function checkCapacity() {
+    const roomSelect = document.getElementById('room_id');
+    const participants = parseInt(document.getElementById('participants').value, 10);
+    const capacity = parseInt(roomSelect.options[roomSelect.selectedIndex]?.dataset.capacity || 0, 10);
+    const capacityAlert = document.getElementById('capacity-alert');
+
+    capacityAlert.classList.toggle('d-none', roomSelect.value === "" || isNaN(participants) || participants <= capacity);
+}
+
+// 实时检查时间冲突（AJAX调用后端接口）
+function checkConflict() {
+    const roomId = document.getElementById('room_id').value;
+    const startTime = document.getElementById('start_time').value;
+    const endTime = document.getElementById('end_time').value;
+    const conflictAlert = document.getElementById('conflict-alert');
+
+    // 清空之前的提示
+    conflictAlert.classList.add('d-none');
+
+    // 必要参数不全时不检查
+    if (!roomId || !startTime || !endTime) return;
+
+    // 调用后端冲突检查接口
+    fetch(`{{ url_for('check_meeting_conflict') }}?room_id=${roomId}&start=${startTime}&end=${endTime}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.conflict) {
+                conflictAlert.classList.remove('d-none');
+            }
+        });
+}
+
+// 表单提交前总验证
+function validateForm() {
+    // 先执行容量检查
+    checkCapacity();
+    // 检查冲突提示是否显示
+    const hasConflict = !document.getElementById('conflict-alert').classList.contains('d-none');
+    const hasCapacityIssue = !document.getElementById('capacity-alert').classList.contains('d-none');
+
+    if (hasConflict || hasCapacityIssue) {
+        return false;
+    }
+
+    // 时间逻辑验证
+    const start = new Date(document.getElementById('start_time').value);
+    const end = new Date(document.getElementById('end_time').value);
+    const now = new Date();
+
+    if (start >= end) {
+        alert('结束时间必须晚于开始时间');
+        return false;
+    }
+    if (start < now) {
+        alert('开始时间不能早于当前时间');
+        return false;
+    }
+
+    return true;
+}
+</script>
+{% endblock %}

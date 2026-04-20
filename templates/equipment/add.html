@@ -1,0 +1,56 @@
+{% extends 'base.html' %}
+
+{% block title %}新增设备 - 企业OA系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h2 class="page-title">新增设备</h2>
+    </div>
+</div>
+
+{% if true %}
+<div class="row mt-3">
+    <div class="col-md-8 col-lg-6">
+        <form method="post" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="mb-3">
+                <label for="name" class="form-label">设备名称 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control {% if error %}is-invalid{% endif %}"
+                       id="name" name="name" value="{{ request.form.name if request.method == 'POST' else '' }}"
+                       placeholder="请输入设备名称（如：联想笔记本电脑）" required>
+                {% if error and '名称' in error %}
+                    <div class="invalid-feedback">{{ error }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="type" class="form-label">设备类型 <span class="text-danger">*</span></label>
+                <input type="text" class="form-control {% if error %}is-invalid{% endif %}"
+                       id="type" name="type" value="{{ request.form.type if request.method == 'POST' else '' }}"
+                       placeholder="请输入设备类型（如：电脑/打印机/投影仪）" required>
+                {% if error and '类型' in error %}
+                    <div class="invalid-feedback">{{ error }}</div>
+                {% endif %}
+            </div>
+
+            <div class="mb-3">
+                <label for="status" class="form-label">设备状态 <span class="text-danger">*</span></label>
+                <select class="form-select" id="status" name="status" required>
+                    <option value="" disabled {% if not request.form.status %}selected{% endif %}>请选择设备状态</option>
+                    <option value="空闲" {% if request.form.status == '空闲' %}selected{% endif %}>空闲</option>
+                    <option value="已领用" {% if request.form.status == '已领用' %}selected{% endif %}>已领用</option>
+                </select>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary">提交</button>
+                <button type="reset" class="btn btn-secondary">重置</button>
+                <a href="{{ url_for('equipment_list') }}" class="btn btn-outline-secondary">返回设备列表</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

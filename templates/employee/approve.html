@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block title %}注册审批 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>待审批员工注册</h3>
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>用户名</th>
+                            <th>真实姓名</th>
+                            <th>部门</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for user in users %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ user.username }}</td>
+                            <td>{{ user.real_name }}</td>
+                            <td>{{ user.department }}</td>
+                            <td>
+                                <form method="POST" class="d-inline">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="user_id" value="{{ user.id }}">
+                                    <button type="submit" name="status" value="已批准" class="btn btn-success btn-sm">批准</button>
+                                    <button type="submit" name="status" value="已拒绝" class="btn btn-danger btn-sm ms-2">拒绝</button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="5" class="text-center text-muted">暂无待审批的注册申请</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

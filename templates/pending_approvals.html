@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+{% block title %}我的待审批 - OA系统{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h3>我的待审批任务</h3>
+    <div class="card mt-3">
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>序号</th>
+                            <th>流程名称</th>
+                            <th>发起时间</th>
+                            <th>当前步骤</th>
+                            <th>截止时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for record in pending_records %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ record.instance.definition.name }}</td>
+                            <td>{{ record.instance.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>{{ record.step.description }}</td>
+                            <td>{{ record.deadline.strftime('%Y-%m-%d %H:%M') }}</td>
+                            <td>
+                                <a href="{{ url_for('approve_workflow', record_id=record.id) }}"
+                                   class="btn btn-primary btn-sm">处理</a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">暂无待审批任务</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
